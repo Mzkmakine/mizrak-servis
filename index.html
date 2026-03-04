@@ -3,137 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mızrak Akıllı Servis | QR Tarayıcı</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Mızrak Akıllı Servis</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        .mizrak-red { background-color: #e30613; }
-        #reader { width: 100%; border-radius: 15px; overflow: hidden; border: none !important; }
-        #reader__dashboard { padding: 10px !important; }
+        body { font-family: sans-serif; text-align: center; background: #f4f4f4; margin: 0; padding: 20px; }
+        #reader { width: 100%; max-width: 500px; margin: auto; border: 5px solid #0056b3; border-radius: 10px; }
+        .result-card { background: white; padding: 20px; border-radius: 10px; margin-top: 20px; display: none; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .error-btn { display: block; width: 100%; padding: 10px; margin: 10px 0; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .mizrak-logo { font-size: 24px; font-weight: bold; color: #0056b3; margin-bottom: 20px; }
     </style>
 </head>
-<body class="bg-gray-100 font-sans min-h-screen pb-10">
+<body>
 
-    <header class="mizrak-red text-white p-6 text-center shadow-lg mb-6">
-        <h1 class="text-2xl font-bold">MIZRAK AKILLI SERVİS</h1>
-        <p class="text-sm opacity-90">QR Kod ile Hızlı Çözüm Sistemi</p>
-    </header>
+    <div class="mizrak-logo">MIZRAK AKILLI SERVİS</div>
+    <div id="reader"></div>
 
-    <main class="p-4 max-w-md mx-auto">
-        
-        <div id="scanner-section" class="bg-white p-4 rounded-2xl shadow-xl border border-gray-200">
-            <h2 class="text-center font-bold text-gray-700 mb-4">Makine QR Kodunu Okutun</h2>
-            <div id="reader"></div>
-            <p class="text-xs text-gray-400 mt-4 text-center italic text-balance">Mızrak Makine 999 Adımlık Vizyon - Faz IV: Test Prototipi</p>
-        </div>
-
-        <div id="result-section" class="hidden animate-fade-in">
-            <button onclick="resetScanner()" class="w-full mb-4 py-2 text-sm font-semibold text-blue-600 bg-blue-50 rounded-lg">← Yeni Tarama Yap</button>
-            
-            <div id="machine-info" class="bg-white p-5 rounded-xl shadow-md border-l-8 border-red-600 mb-6 text-balance">
-                </div>
-
-            <h3 class="font-bold text-lg mb-4 px-1">Hata Kodları ve Çözümler</h3>
-            <div id="error-list" class="grid gap-3 text-balance">
-                </div>
-        </div>
-
-        <div id="solution-section" class="hidden">
-            <button onclick="backToErrors()" class="w-full mb-4 py-2 text-sm font-semibold text-blue-600 bg-blue-50 rounded-lg">← Hata Listesine Dön</button>
-            <div id="solution-card" class="bg-white p-8 rounded-2xl shadow-2xl border border-gray-100 text-balance">
-                </div>
-            <button onclick="alert('Teknik servis talebiniz Mızrak ERP sistemine (Mikro/Logo) iletildi. Servis No: #'+Math.floor(Math.random()*9999))" 
-                    class="w-full mt-8 bg-black text-white py-5 rounded-2xl font-black text-lg shadow-xl active:scale-95 transition-transform">
-                TEKNİK SERVİS ÇAĞIR
-            </button>
-        </div>
-
-    </main>
+    <div id="result" class="result-card">
+        <h2 id="machine-name"></h2>
+        <p><strong>Seri No:</strong> <span id="serial-no"></span></p>
+        <p><strong>Durum:</strong> <span id="status"></span></p>
+        <hr>
+        <h3>Hata Kodları</h3>
+        <button class="error-btn" onclick="alert('Teknik servis kaydı oluşturuldu: E01 - Motor Arızası')">E01 - Motor Isınma Hatası</button>
+        <button class="error-btn" onclick="alert('Teknik servis kaydı oluşturuldu: E05 - Sensör Hatası')">E05 - Optik Okuyucu Hatası</button>
+        <button class="error-btn" onclick="alert('WhatsApp Destek Hattına Yönlendiriliyorsunuz...')">WhatsApp Destek Al</button>
+    </div>
 
     <script>
         const machines = {
-            "M001": { model: "MZK 3800 Diamond", sn: "2024-001", status: "Garanti Aktif" },
-            "M002": { model: "MZK 3800 Gold", sn: "2024-002", status: "Garanti Aktif" },
-            "M003": { model: "MZK 2500 Edge", sn: "2024-003", status: "Kapsam Dışı" },
-            "M004": { model: "MZK 4200 Multi", sn: "2024-004", status: "Garanti Aktif" },
-            "M005": { model: "Mızrak Panel Ebatlama", sn: "2024-005", status: "Bakım Gerekli" }
+            "MIZRAK-001": { model: "MZK 3800 Diamond", sn: "3800-01", status: "Garanti Aktif" },
+            "MIZRAK-002": { model: "MZK 3800 Gold", sn: "3800-02", status: "Garanti Aktif" },
+            "MIZRAK-003": { model: "MZK 3200 Special", sn: "3200-01", status: "Servis Gerekli" },
+            "MIZRAK-004": { model: "MZK 2500 Edge", sn: "2500-44", status: "Garanti Aktif" },
+            "MIZRAK-005": { model: "Mızrak Panel Ebatlama", sn: "PE-99", status: "Bakım Yapıldı" }
         };
 
-        const errors = [
-            { code: "E01", title: "İnverter Arızası", sol: "Güç panosundaki ana sigortayı kontrol edin. İnverter soğutma fanının tozunu temizleyin." },
-            { code: "E02", title: "Hava Basıncı Düşük", sol: "Kompresör çıkışını kontrol edin. Basınç 6.2 Bar altında olmamalıdır." },
-            { code: "E03", title: "Testere Motoru Isınma", sol: "Motor üzerindeki talaş birikintilerini temizleyin. Besleme hızını düşürün." },
-            { code: "E04", title: "Acil Stop Aktif", sol: "Tüm acil stop butonlarını kontrol edin, çevirerek serbest bırakın ve Reset tuşuna basın." },
-            { code: "E05", title: "Yağlama Seviyesi", sol: "Yağ haznesini kontrol edin. ISO 68 kızak yağı ekleyerek sistemi manuel tetikleyin." }
-        ];
-
-        let html5QrCode;
-
-        function startScanner() {
-            html5QrCode = new Html5Qrcode("reader");
-            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-
-            html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
-                // QR Kod okunduğunda (decodedText bizim ID'miz olmalı)
-                const machineId = decodedText.trim(); 
-                if (machines[machineId]) {
-                    showMachineDetails(machineId);
-                    html5QrCode.stop();
-                } else {
-                    alert("Tanımlanamayan QR Kod: " + decodedText + ". Lütfen Mızrak QR kodlarını kullanın.");
-                }
-            });
+        function onScanSuccess(decodedText) {
+            const machine = machines[decodedText];
+            if (machine) {
+                document.getElementById('machine-name').innerText = machine.model;
+                document.getElementById('serial-no').innerText = machine.sn;
+                document.getElementById('status').innerText = machine.status;
+                document.getElementById('result').style.display = 'block';
+                // Okuma başarılı olunca kamerayı durdurabiliriz
+                html5QrcodeScanner.clear();
+            } else {
+                alert("Tanımlanamayan QR Kod: " + decodedText + "\nLütfen Mızrak QR kodlarını kullanın.");
+            }
         }
 
-        function showMachineDetails(id) {
-            const m = machines[id];
-            document.getElementById('scanner-section').classList.add('hidden');
-            document.getElementById('result-section').classList.remove('hidden');
-            
-            document.getElementById('machine-info').innerHTML = `
-                <h2 class='text-2xl font-black text-gray-800'>${m.model}</h2>
-                <div class='flex justify-between mt-2'>
-                    <span class='text-gray-500'>S/N: ${m.sn}</span>
-                    <span class='font-bold text-green-600'>${m.status}</span>
-                </div>
-            `;
-
-            const errList = document.getElementById('error-list');
-            errList.innerHTML = '';
-            errors.forEach(e => {
-                const btn = document.createElement('button');
-                btn.className = "w-full bg-white p-5 rounded-xl text-left border border-gray-200 shadow-sm font-bold text-gray-700 active:bg-red-50 flex justify-between items-center";
-                btn.innerHTML = `<span>${e.code} - ${e.title}</span> <span class='text-red-600'>→</span>`;
-                btn.onclick = () => showSolution(e);
-                errList.appendChild(btn);
-            });
-        }
-
-        function showSolution(e) {
-            document.getElementById('result-section').classList.add('hidden');
-            document.getElementById('solution-section').classList.remove('hidden');
-            document.getElementById('solution-card').innerHTML = `
-                <span class='text-red-600 font-black text-xs uppercase tracking-widest'>Hata Çözüm Rehberi</span>
-                <h2 class='text-3xl font-black mt-2 mb-6 text-gray-900'>${e.code}<br>${e.title}</h2>
-                <div class='bg-red-50 p-4 rounded-lg border-l-4 border-red-600'>
-                    <p class='text-gray-800 text-lg leading-relaxed italic'>${e.sol}</p>
-                </div>
-            `;
-        }
-
-        function resetScanner() {
-            document.getElementById('result-section').classList.add('hidden');
-            document.getElementById('scanner-section').classList.remove('hidden');
-            startScanner();
-        }
-
-        function backToErrors() {
-            document.getElementById('solution-section').classList.add('hidden');
-            document.getElementById('result-section').classList.remove('hidden');
-        }
-
-        // Başlat
-        window.onload = startScanner;
+        const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner.render(onScanSuccess);
     </script>
 </body>
 </html>
